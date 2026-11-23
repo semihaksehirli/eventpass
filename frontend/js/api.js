@@ -3,8 +3,10 @@
 // When the back end is ready: set USE_MOCK = false and API_BASE_URL to the back-end server.
 // Each function then calls the matching REST endpoint shown in its comment.
 
-const USE_MOCK = true;
-const API_BASE_URL = "http://localhost:3000/api"; // change to the real back-end URL
+// Pages served under /student/ use the same-origin API. Other copies keep mock mode.
+const USE_MOCK = !window.location.pathname.startsWith("/student/");
+const API_BASE_URL = "/api";
+const SESSION_KEY = USE_MOCK ? "ep_currentUser" : "ep_liveStudent";
 
 // ---------- Fake-data storage (mock mode only) ----------
 
@@ -43,7 +45,7 @@ function publicUser(user) {
 // it is sent back on every request as "Authorization: Bearer <token>".
 async function request(method, path, body) {
   const headers = { "Content-Type": "application/json" };
-  const saved = JSON.parse(localStorage.getItem("ep_currentUser") || "null");
+  const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
   if (saved && saved.token) headers.Authorization = "Bearer " + saved.token;
   const res = await fetch(API_BASE_URL + path, {
     method,
@@ -51,7 +53,13 @@ async function request(method, path, body) {
     body: body ? JSON.stringify(body) : undefined
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || "Request failed");
+  if (!res.ok) {
+    if (res.status === 401 && saved?.token) {
+      localStorage.removeItem(SESSION_KEY);
+      window.location.replace("login.html");
+    }
+    throw new Error(data.message || "Request failed");
+  }
   return data;
 }
 

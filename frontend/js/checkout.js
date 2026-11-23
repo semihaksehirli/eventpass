@@ -2,6 +2,11 @@
 const payBtn = document.getElementById("pay-btn");
 const message = document.getElementById("message");
 let total = 0;
+payBtn.disabled = true;
+if (!USE_MOCK) {
+  document.querySelector(".page-sub").textContent = "Confirm your details to book free tickets.";
+  document.getElementById("payment-box").classList.add("hidden");
+}
 
 function setError(id, text) {
   document.getElementById(id + "-error").textContent = text;
@@ -55,7 +60,8 @@ document.getElementById("cardExpiry").addEventListener("input", e => {
 function renderCheckout() {
   const lines = cartLines();
   if (!lines.length) { window.location.href = "cart.html"; return; }
-  if (lines.some(l => l.problem)) {
+  payBtn.disabled = lines.some(l => l.problem);
+  if (payBtn.disabled) {
     showMessage(message, "Some items in your cart need attention. Go back to your cart to fix them.", "error");
     payBtn.disabled = true;
   }
@@ -68,7 +74,12 @@ function renderCheckout() {
 
   document.getElementById("payment-box").classList.toggle("hidden", total === 0);
   document.getElementById("free-box").classList.toggle("hidden", total > 0);
-  payBtn.textContent = total > 0 ? "Pay $" + total.toFixed(2) + " and book" : "Confirm free booking";
+  if (!USE_MOCK && total > 0) {
+    document.getElementById("payment-box").classList.add("hidden");
+    showMessage(message, "Checkout currently supports free tickets only.", "error");
+    payBtn.disabled = true;
+  }
+  payBtn.textContent = total > 0 ? (!USE_MOCK ? "Paid checkout unavailable" : "Pay $" + total.toFixed(2) + " and book") : "Confirm free booking";
 
   document.getElementById("summary").innerHTML = lines.filter(l => l.ev).map(l => `
     <div class="summary-line"><span><strong>${esc(l.ev.Title)}</strong><br>
@@ -79,7 +90,7 @@ function renderCheckout() {
 
 document.getElementById("checkout-form").addEventListener("submit", async e => {
   e.preventDefault();
-  if (total > 0 && !validateCard()) return;
+  if (total > 0 && (!USE_MOCK || !validateCard())) return;
 
   payBtn.disabled = true;
   payBtn.textContent = "Booking...";

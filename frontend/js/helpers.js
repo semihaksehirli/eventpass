@@ -79,6 +79,10 @@ function bookingTicketCount(bookingId) {
 }
 
 async function loadAll() {
+  if (!USE_MOCK) {
+    Object.assign(db, await request("GET", "/student"));
+    return;
+  }
   for (const table of Object.keys(db)) db[table] = await getAll(table);
 }
 
@@ -177,7 +181,7 @@ function barHtml(percent) {
 
 // ---------- Cart (saved per student in the browser until checkout) ----------
 
-function cartKey() { const u = getCurrentUser(); return "ep_cart_" + (u ? u.UserID : "guest"); }
+function cartKey() { const u = getCurrentUser(); return (USE_MOCK ? "ep_cart_" : "ep_live_cart_") + (u ? u.UserID : "guest"); }
 
 function getCart() {
   try { return JSON.parse(localStorage.getItem(cartKey())) || []; } catch (e) { return []; }
@@ -231,7 +235,7 @@ function askConfirm(title, text, yesText, onYes) {
     if (e.target === wrap || e.target.hasAttribute("data-no")) return close();
     if (e.target.hasAttribute("data-yes")) {
       e.target.disabled = true;
-      try { await onYes(); } finally { close(); }
+      try { await onYes(); } catch (error) { toast(error.message); } finally { close(); }
     }
   });
 }

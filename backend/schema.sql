@@ -1,0 +1,36 @@
+CREATE TABLE IF NOT EXISTS Categories (
+  CategoryID INTEGER PRIMARY KEY,
+  Name TEXT NOT NULL UNIQUE
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS Venues (
+  VenueID INTEGER PRIMARY KEY,
+  Name TEXT NOT NULL,
+  Address TEXT NOT NULL,
+  City TEXT NOT NULL,
+  State TEXT NOT NULL,
+  Capacity INTEGER NOT NULL CHECK (Capacity > 0)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS Events (
+  EventID INTEGER PRIMARY KEY,
+  OrganizerID INTEGER NOT NULL,
+  VenueID INTEGER NOT NULL REFERENCES Venues (VenueID),
+  CategoryID INTEGER NOT NULL REFERENCES Categories (CategoryID),
+  Title TEXT NOT NULL,
+  Description TEXT,
+  EventDate TEXT NOT NULL,
+  StartTime TEXT NOT NULL,
+  ImageURL TEXT,
+  Status TEXT NOT NULL CHECK (Status IN ('Active', 'Pending', 'Cancelled'))
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS TicketTypes (
+  TicketTypeID INTEGER PRIMARY KEY,
+  EventID INTEGER NOT NULL REFERENCES Events (EventID),
+  Name TEXT NOT NULL,
+  PriceCents INTEGER NOT NULL CHECK (PriceCents >= 0),
+  QuantityTotal INTEGER NOT NULL CHECK (QuantityTotal > 0),
+  QuantityAvailable INTEGER NOT NULL CHECK (QuantityAvailable BETWEEN 0 AND QuantityTotal),
+  UNIQUE (EventID, Name)
+) STRICT;

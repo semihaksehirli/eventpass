@@ -1,11 +1,11 @@
 // Keeps track of who is logged in (saved in the browser).
 
 function setCurrentUser(user) {
-  localStorage.setItem("ep_currentUser", JSON.stringify(user));
+  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
 }
 
 function getCurrentUser() {
-  const saved = localStorage.getItem("ep_currentUser");
+  const saved = localStorage.getItem(SESSION_KEY);
   return saved ? JSON.parse(saved) : null;
 }
 
@@ -15,8 +15,12 @@ function goHome(user) {
   window.location.href = (user && pages[user.Role]) || "index.html";
 }
 
-function logout() {
-  localStorage.removeItem("ep_currentUser");
+async function logout() {
+  if (!USE_MOCK) {
+    try { await request("POST", "/logout"); }
+    catch (error) { console.error(error); }
+  }
+  localStorage.removeItem(SESSION_KEY);
   window.location.href = "login.html";
 }
 
@@ -66,8 +70,9 @@ function renderNav() {
     const roleName = user.Role === "Customer" ? "Student" : user.Role;
     nav.innerHTML = `
       ${roleLinks[user.Role] || ""}
-      <span class="nav-user">Hi, ${user.FirstName} (${roleName})</span>
+      <span class="nav-user">Hi, <span id="nav-user-name"></span> (${roleName})</span>
       <a href="#" id="logout-link">Log out</a>`;
+    document.getElementById("nav-user-name").textContent = user.FirstName;
     if (typeof updateCartCount === "function") updateCartCount();
     document.getElementById("logout-link").addEventListener("click", e => {
       e.preventDefault();

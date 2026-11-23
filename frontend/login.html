@@ -56,6 +56,8 @@
     const message = document.getElementById("message");
     const loginBtn = document.getElementById("login-btn");
 
+    if (!USE_MOCK) document.querySelector(".demo-box").hidden = true;
+
     // Already logged in? Go home.
     if (getCurrentUser()) goHome(getCurrentUser());
 
@@ -88,6 +90,7 @@
 
       try {
         const user = await loginUser(email, password);
+        if (!USE_MOCK && user.Role !== "Customer") throw new Error("Sign in with a student account.");
         setCurrentUser(user);
         goHome(user);
       } catch (err) {
