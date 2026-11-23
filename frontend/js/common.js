@@ -117,9 +117,10 @@ function eventFields(ev = {}, organizerId = null) {
   }
   fields.push(
     { id: "EventDate", label: "Date", type: "date", value: ev.EventDate, required: true },
-    { id: "StartTime", label: "Start time", type: "time", value: ev.StartTime, required: true },
-    { id: "Image", label: "Event photo (optional)", type: "image", preview: ev.EventID ? eventImage(ev) : "" }
+    { id: "StartTime", label: "Start time", type: "time", value: ev.StartTime, required: true }
   );
+  // The back end doesn't store photos yet, so the photo field only shows with the fake data
+  if (USE_MOCK) fields.push({ id: "Image", label: "Event photo (optional)", type: "image", preview: ev.EventID ? eventImage(ev) : "" });
   return fields;
 }
 
@@ -134,7 +135,8 @@ async function readEvent(fields, organizerId) {
     CategoryID: Number(v.CategoryID), VenueID: Number(v.VenueID), OrganizerID: orgId,
     EventDate: v.EventDate, StartTime: v.StartTime
   };
-  const photo = await readImageFile(document.getElementById("f-Image").files[0]);
+  const photoInput = document.getElementById("f-Image");
+  const photo = photoInput && await readImageFile(photoInput.files[0]);
   if (photo) data.ImageURL = photo;
   return data;
 }
@@ -167,8 +169,12 @@ function addEvent(organizerId = null) {
       const data = await readEvent(fields, organizerId);
       const ticket = readTicket(tFields);
       // Organizers' new events wait for an admin to approve them; admins' go live right away
-      const ev = await createRow("Events", { ...data, Status: organizerId ? "Pending" : "Active" });
-      await createRow("TicketTypes", { EventID: ev.EventID, ...ticket });
+      if (organizerId) {
+        await submitEvent(data, ticket);
+      } else {
+        const ev = await createRow("Events", { ...data, Status: "Active" });
+        await createRow("TicketTypes", { EventID: ev.EventID, ...ticket });
+      }
       toast(organizerId ? "Event sent to an admin for approval." : "Event added.");
     }
   });
@@ -272,13 +278,19 @@ function eventRowHtml(e, showOrganizer) {
       <td>${badge(e.Status)}</td>
       <td class="actions">
         ${showOrganizer && e.Status === "Pending" ? `<button class="link-btn approve" data-action="approve-event" data-id="${e.EventID}">Approve</button>` : ""}
+        ${USE_MOCK ? manageButtons(e, showOrganizer) : (showOrganizer && e.Status === "Pending" ? "" : `<span class="list-sub">More actions coming soon</span>`)}
+      </td>
+    </tr>`;
+}
+
+// Edit / tickets / cancel / delete — only with the fake data until the back end has these endpoints
+function manageButtons(e, showOrganizer) {
+  return `
         <button class="link-btn" data-action="edit-event" data-id="${e.EventID}">Edit</button>
         <button class="link-btn" data-action="tickets" data-id="${e.EventID}">Tickets</button>
         ${showOrganizer ? "" : `<button class="link-btn" data-action="view-attendees" data-id="${e.EventID}">Attendees</button>`}
         <button class="link-btn" data-action="toggle-event" data-id="${e.EventID}">${e.Status === "Cancelled" ? "Restore" : "Cancel"}</button>
-        <button class="link-btn danger" data-action="delete-event" data-id="${e.EventID}">Delete</button>
-      </td>
-    </tr>`;
+        <button class="link-btn danger" data-action="delete-event" data-id="${e.EventID}">Delete</button>`;
 }
 
 // ---------- Button clicks ----------

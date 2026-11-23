@@ -42,3 +42,19 @@ It runs on fake data saved in the browser until the back end is ready (see `js/a
 1. Start the back end.
 2. In `js/api.js` set `USE_MOCK = false` (and `API_BASE_URL` if it isn't on port 3000).
 3. Open `login.html` with Live Server.
+
+## Live site (with the back end)
+
+Run `node backend/server.mjs` and open http://127.0.0.1:3000/student/login.html.
+Pages opened under `/student/` use the real API; opening the files directly keeps the fake data.
+
+| Screen | Connected to the API |
+| --- | --- |
+| Sign up / log in (student, organizer, admin) | ✅ |
+| Browse, event details, free checkout, My Bookings, cancel | ✅ |
+| Organizer: My Events, Create event (goes to admin as Pending) | ✅ |
+| Admin: pending events + Approve | ✅ |
+| Paid checkout, event photos, edit/cancel/delete events, ticket types, attendees & check-in, sales, admin users/venues/bookings/reports | ⏳ waiting on back-end endpoints (fake data only) |
+
+To make an admin account: sign up as an organizer, then run
+`node backend/promote-admin.mjs <email>` and log in again.

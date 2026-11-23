@@ -69,7 +69,7 @@ actions["edit-event"] = id => editEvent(id, null);
 actions["approve-event"] = id => {
   const ev = find("Events", id);
   confirmModal("Approve event?", `"${ev.Title}" by ${fullName(find("Users", ev.OrganizerID))} will go live for students.`, async () => {
-    await updateRow("Events", id, { Status: "Active" });
+    await approveEvent(id);
     toast("Event approved.");
   });
   document.getElementById("modal-save").className = "btn"; // green-light, not a danger action
@@ -361,4 +361,19 @@ function renderAll() {
   renderReports();
 }
 
-if (admin) loadAll().then(renderAll);
+// Live site: only event approval is connected to the back end so far
+function setUpLiveMode() {
+  if (USE_MOCK) return;
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    if (btn.dataset.tab !== "events") btn.classList.add("hidden");
+  });
+  document.querySelector('[data-tab="events"]').click();
+  document.getElementById("add-event-btn").classList.add("hidden");
+  document.getElementById("tab-events").insertAdjacentHTML("afterbegin",
+    `<div class="pending-banner live-note">Connected to the live database: approved and pending events. Users, venues, bookings and reports will appear here once the back end supports them.</div>`);
+}
+
+if (admin) {
+  setUpLiveMode();
+  loadAll().then(renderAll).catch(err => toast(err.message));
+}

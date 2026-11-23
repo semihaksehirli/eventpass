@@ -187,3 +187,6 @@ tr:hover td { background: #fff7f0; }
   .modal { padding: 18px; }
   .toast { left: 16px; right: 16px; bottom: 16px; }
 }
+
+/* Note shown on the live site about which parts are connected */
+.live-note { background: #fff7f0; color: #9a3412; border-left: 4px solid #f47b20; }

@@ -80,7 +80,8 @@ function bookingTicketCount(bookingId) {
 
 async function loadAll() {
   if (!USE_MOCK) {
-    Object.assign(db, await request("GET", "/student"));
+    const role = (getCurrentUser() || {}).Role;
+    Object.assign(db, role === "Customer" ? await request("GET", "/student") : await loadLiveDashboard(role));
     return;
   }
   for (const table of Object.keys(db)) db[table] = await getAll(table);

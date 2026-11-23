@@ -90,7 +90,6 @@
 
       try {
         const user = await loginUser(email, password);
-        if (!USE_MOCK && user.Role !== "Customer") throw new Error("Sign in with a student account.");
         setCurrentUser(user);
         goHome(user);
       } catch (err) {

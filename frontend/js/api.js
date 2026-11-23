@@ -208,3 +208,55 @@ async function setCheckedIn(bookingItemId, checkedIn) {
   saveTable("Tickets", tickets);
   return { BookingItemID: bookingItemId, IsCheckedIn: checkedIn };
 }
+
+// ---------- Live dashboards (organizer + admin) ----------
+// These use the endpoints the back end has so far:
+//   GET  /api/categories, /api/venues, /api/events, /api/tickettypes   (approved catalog)
+//   GET  /api/organizer/events          organizer's own events (any status)
+//   POST /api/organizer/events          submit a new event as Pending
+//   GET  /api/admin/events/pending      events waiting for approval
+//   POST /api/admin/events/{id}/approve approve one
+
+// Loads what an organizer or admin dashboard needs, in the same shape as the fake data.
+async function loadLiveDashboard(role) {
+  const [Categories, Venues, catalog, TicketTypes] = await Promise.all(
+    ["/categories", "/venues", "/events", "/tickettypes"].map(path => request("GET", path)));
+  let Events = catalog;
+  if (role === "Organizer") {
+    // Their own events (any status) plus everyone's approved events for the browse page
+    const mine = await request("GET", "/organizer/events");
+    const mineIds = new Set(mine.map(e => e.EventID));
+    Events = mine.concat(catalog.filter(e => !mineIds.has(e.EventID)));
+  }
+  if (role === "Admin") Events = catalog.concat(await request("GET", "/admin/events/pending"));
+
+  // The API doesn't list users yet, so show organizers by number
+  const me = getCurrentUser();
+  const Users = [...new Set(Events.map(e => e.OrganizerID))]
+    .filter(id => !me || id !== me.UserID)
+    .map(id => ({ UserID: id, FirstName: "Organizer", LastName: "#" + id, Role: "Organizer" }));
+  if (me) Users.push(me);
+
+  return { Users, Categories, Venues, Events, TicketTypes,
+    Bookings: [], BookingItems: [], Payments: [], Tickets: [] };
+}
+
+// Organizer submits an event with its first ticket type. Prices go to the API in cents.
+async function submitEvent(event, ticket) {
+  if (USE_MOCK) {
+    const ev = await createRow("Events", { ...event, Status: "Pending" });
+    await createRow("TicketTypes", { EventID: ev.EventID, ...ticket });
+    return ev;
+  }
+  const { ImageURL, OrganizerID, ...details } = event; // the API sets the organizer from the login
+  return request("POST", "/organizer/events", {
+    ...details,
+    TicketTypes: [{ Name: ticket.Name, PriceCents: Math.round(ticket.Price * 100), QuantityTotal: ticket.QuantityTotal }]
+  });
+}
+
+// Admin approves a pending event
+async function approveEvent(eventId) {
+  if (USE_MOCK) return updateRow("Events", eventId, { Status: "Active" });
+  return request("POST", "/admin/events/" + eventId + "/approve");
+}

@@ -109,11 +109,6 @@
       document.getElementById(id).classList.toggle("invalid", !!text);
     }
 
-    if (!USE_MOCK) {
-      const organizer = document.querySelector('input[name="role"][value="Organizer"]');
-      organizer.disabled = true;
-    }
-
     // Students need a WPU email + student ID; organizers can use any email
     function updateForRole() {
       document.getElementById("studentId-group").style.display = isStudent() ? "block" : "none";

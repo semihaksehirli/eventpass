@@ -162,4 +162,18 @@ function renderAll() {
   renderSales();
 }
 
-if (organizer) loadAll().then(renderAll);
+// Live site: "My Events" and "Create event" are connected; attendees and sales come later
+function setUpLiveMode() {
+  if (USE_MOCK) return;
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    if (btn.dataset.tab !== "events") btn.classList.add("hidden");
+  });
+  document.getElementById("stats").classList.add("hidden");
+  document.getElementById("tab-events").insertAdjacentHTML("afterbegin",
+    `<div class="pending-banner live-note">Connected to the live database. New events go to an admin for approval. Editing, attendees and sales will appear here once the back end supports them.</div>`);
+}
+
+if (organizer) {
+  setUpLiveMode();
+  loadAll().then(renderAll).catch(err => toast(err.message));
+}
